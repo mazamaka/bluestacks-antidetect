@@ -217,7 +217,13 @@ async def _set_device_props(port: int, model: str) -> dict:
     for prop, value in props.items():
         try:
             await adb_shell(port, f"setprop {prop} {value}")
-            set_props.append(f"{prop}={value}")
+        except RuntimeError:
+            pass  # setprop returns error for ro.* but value may still be set
+        # Verify it actually took
+        try:
+            actual = (await adb_shell(port, f"getprop {prop}")).strip()
+            if actual == value:
+                set_props.append(f"{prop}={value}")
         except RuntimeError:
             pass
 
