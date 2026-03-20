@@ -679,7 +679,7 @@ user:pass@host3:1080"></textarea>
 
 <!-- Info Modal -->
 <div class="modal-overlay" id="info-modal">
-    <div class="modal">
+    <div class="modal" style="width:680px;">
         <div class="modal-header">
             <h2>Instance Details</h2>
             <button class="btn-icon" onclick="closeModal('info-modal')">&times;</button>
@@ -799,6 +799,9 @@ function renderInstances(instances) {
                 ${hasProxy ? `<button class="btn btn-sm btn-secondary" onclick="setupSocksDroid('${inst.name}')" title="Install & configure SocksDroid VPN">SD</button>` : ''}
                 ${hasProxy ? `<button class="btn btn-sm btn-secondary" onclick="reapplyProxy('${inst.name}')" title="Re-apply proxy via ADB">&#8635;</button>` : ''}
                 ${hasProxy ? `<button class="btn btn-sm btn-secondary" onclick="checkIp('${inst.name}')" title="Check external IP">IP</button>` : ''}
+                <button class="btn btn-sm btn-secondary" onclick="applyCloaking('${inst.name}')" title="Apply device cloaking" style="color:var(--green)">Cloak</button>
+                <button class="btn btn-sm btn-secondary" onclick="deviceAudit('${inst.name}')" title="Device detection audit" style="color:var(--orange)">Audit</button>
+                ${!isMaster ? `<button class="btn btn-sm btn-secondary" onclick="installApps('${inst.name}')" title="Install Play Console + Integrity Checker">Apps</button>` : ''}
                 ${!isMaster ? `<button class="btn btn-sm btn-danger" onclick="deleteInstance('${inst.name}')" title="Delete instance">&#10005;</button>` : ''}
             </div>
         </div>`;
@@ -892,6 +895,92 @@ async function restartInstance(name) {
             toast('Restart failed: ' + e.message, 'error');
         }
     }, 3000);
+}
+
+async function applyCloaking(name) {
+    toast(`Applying cloaking on ${name}...`, 'info');
+    try {
+        const data = await api(`/api/instances/${name}/cloak`, {method: 'POST'});
+        const fixes = data.fixes || [];
+        const summary = fixes.map(f => {
+            const icon = f.status === 'ok' ? '✓' : f.status === 'warn' ? '⚠' : '✗';
+            return `${icon} ${f.name}`;
+        }).join(' | ');
+        toast(`${data.ok}/${fixes.length} OK: ${summary}`, data.fail > 0 ? 'error' : 'success');
+    } catch(e) {
+        toast('Cloaking failed: ' + e.message, 'error');
+    }
+}
+
+async function revertCloaking(name) {
+    toast(`Reverting cloaking on ${name}...`, 'info');
+    try {
+        await api(`/api/instances/${name}/cloak-revert`, {method: 'POST'});
+        toast('Cloaking reverted. Reboot to fully reset.', 'success');
+    } catch(e) {
+        toast('Revert failed: ' + e.message, 'error');
+    }
+}
+
+async function deviceAudit(name) {
+    document.getElementById('info-modal-body').innerHTML = '<div class="loading"></div> Running device audit... (10-15 sec)';
+    openModal('info-modal');
+    try {
+        const data = await api(`/api/instances/${name}/audit`);
+        const s = data.summary;
+        let html = `<div style="margin-bottom:16px;">
+            <h3 style="margin-bottom:8px;">Device Audit: ${name}</h3>
+            <div style="display:flex;gap:12px;margin-bottom:12px;">
+                <span style="color:var(--green);font-weight:700;font-size:20px;">${s.score}%</span>
+                <span style="color:var(--green);">${s.ok} OK</span>
+                <span style="color:var(--orange);">${s.warn} WARN</span>
+                <span style="color:var(--red);">${s.fail} FAIL</span>
+            </div></div>`;
+
+        const categories = [
+            ['build_props', 'Build Properties'],
+            ['system_files', 'System Files'],
+            ['hardware_ids', 'Hardware IDs'],
+            ['runtime', 'Runtime Environment'],
+            ['packages', 'Packages'],
+            ['network', 'Network'],
+        ];
+        for (const [key, title] of categories) {
+            const items = data[key] || [];
+            if (!items.length) continue;
+            const failCount = items.filter(i => i.status === 'fail').length;
+            const warnCount = items.filter(i => i.status === 'warn').length;
+            const badge = failCount ? `<span style="color:var(--red);font-size:11px;margin-left:8px;">${failCount} FAIL</span>` :
+                          warnCount ? `<span style="color:var(--orange);font-size:11px;margin-left:8px;">${warnCount} WARN</span>` :
+                          `<span style="color:var(--green);font-size:11px;margin-left:8px;">OK</span>`;
+            html += `<div style="margin-bottom:12px;">
+                <div style="font-weight:600;font-size:13px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">${title}${badge}</div>`;
+            for (const item of items) {
+                const color = item.status === 'fail' ? 'var(--red)' : item.status === 'warn' ? 'var(--orange)' : 'var(--green)';
+                const icon = item.status === 'fail' ? '✗' : item.status === 'warn' ? '!' : '✓';
+                html += `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.03);" title="${item.detail || ''}">
+                    <span style="color:var(--text2);min-width:180px;">${item.name}</span>
+                    <span style="font-family:monospace;flex:1;text-align:right;color:${color};">
+                        <span style="margin-right:4px;">${icon}</span>${item.value.substring(0, 60)}${item.value.length > 60 ? '...' : ''}
+                    </span>
+                </div>`;
+            }
+            html += '</div>';
+        }
+        document.getElementById('info-modal-body').innerHTML = html;
+    } catch(e) {
+        document.getElementById('info-modal-body').innerHTML = `<div style="color:var(--red);">Audit failed: ${e.message}</div>`;
+    }
+}
+
+async function installApps(name) {
+    toast(`Installing apps on ${name}...`, 'info');
+    try {
+        const data = await api(`/api/instances/${name}/install-apps`, {method: 'POST'});
+        toast(data.message, 'success');
+    } catch(e) {
+        toast('Install failed: ' + e.message, 'error');
+    }
 }
 
 async function setupSocksDroid(name) {

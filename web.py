@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from loguru import logger
 from pydantic import BaseModel
 
-from adb_manager import adb_shell, clear_proxy, connect, get_device_info, install_apk
+from adb_manager import adb_cmd, adb_shell, clear_proxy, connect, get_device_info, install_apk
 from bs_conf import parse_conf, write_conf
 from config import BS_MAIN
 from fingerprint import generate_fingerprint
@@ -404,6 +404,113 @@ async def api_setup_socksdroid(name: str) -> dict:
         else:
             await adb_shell(adb_port, "monkey -p net.typeblog.socks 1")
             return {"status": "ok", "instance": name, "message": "SocksDroid installed — set proxy manually"}
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/instances/{name}/cloak")
+async def api_cloak(name: str) -> dict:
+    """Apply Phase 1 cloaking (hide BS packages, fix props, MAC)."""
+    from cloaking import apply_cloaking
+    conf = parse_conf()
+    adb_port = int(conf.get(f"bst.instance.{name}.adb_port", "0"))
+    if not adb_port:
+        raise HTTPException(404, f"Instance '{name}' not found")
+
+    # Get device model for this instance
+    model_key = f"bst.instance.{name}.device_custom_model"
+    brand_key = f"bst.instance.{name}.device_custom_brand"
+    model = conf.get(model_key, "")
+    brand = conf.get(brand_key, "")
+    # Build full model string for lookup
+    full_model = f"{brand} {model}".strip() if brand else model
+
+    try:
+        result = await apply_cloaking(adb_port, full_model, brand)
+        fixes = result["fixes"]
+        msg = " | ".join(f"{f['name']}: {f['status']}" for f in fixes)
+        return {"status": "ok", "instance": name, "message": msg, "fixes": fixes,
+                "ok": result["ok"], "fail": result["fail"]}
+    except (ConnectionError, RuntimeError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/instances/{name}/cloak-revert")
+async def api_cloak_revert(name: str) -> dict:
+    """Revert cloaking fixes."""
+    from cloaking import revert_cloaking
+    conf = parse_conf()
+    adb_port = int(conf.get(f"bst.instance.{name}.adb_port", "0"))
+    if not adb_port:
+        raise HTTPException(404, f"Instance '{name}' not found")
+    try:
+        result = await revert_cloaking(adb_port)
+        return {"status": "ok", "instance": name, "fixes": result["fixes"]}
+    except (ConnectionError, RuntimeError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/instances/{name}/install-apps")
+async def api_install_apps(name: str) -> dict:
+    """Install Play Console + Play Integrity Checker on instance."""
+    conf = parse_conf()
+    adb_port = int(conf.get(f"bst.instance.{name}.adb_port", "0"))
+    if not adb_port:
+        raise HTTPException(404, f"Instance '{name}' not found")
+
+    try:
+        if not await connect(adb_port):
+            raise HTTPException(400, "Instance not running or ADB offline")
+
+        apks_dir = Path(__file__).parent / "apks"
+        results = []
+
+        # Play Integrity Checker
+        pkg = "gr.nikolasspyr.integritycheck"
+        check = await adb_shell(adb_port, f"pm list packages {pkg}")
+        if pkg in check:
+            results.append(f"Integrity Checker: already installed")
+        else:
+            ic_dir = apks_dir / "integrity-check"
+            apk_files = sorted(ic_dir.glob("*.apk"))
+            if apk_files:
+                paths = " ".join(str(f) for f in apk_files)
+                await adb_cmd(adb_port, "install-multiple", "-r", *[str(f) for f in apk_files], timeout=60)
+                results.append(f"Integrity Checker: installed")
+            else:
+                results.append(f"Integrity Checker: APK not found")
+
+        # Play Console
+        pkg = "com.google.android.apps.playconsole"
+        check = await adb_shell(adb_port, f"pm list packages {pkg}")
+        if pkg in check:
+            results.append(f"Play Console: already installed")
+        else:
+            pc_dir = apks_dir / "play-console"
+            apk_files = sorted(pc_dir.glob("*.apk"))
+            if apk_files:
+                await adb_cmd(adb_port, "install-multiple", "-r", *[str(f) for f in apk_files], timeout=120)
+                results.append(f"Play Console: installed")
+            else:
+                results.append(f"Play Console: APK not found")
+
+        return {"status": "ok", "instance": name, "message": " | ".join(results)}
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/instances/{name}/audit")
+async def api_device_audit(name: str) -> dict:
+    """Run device audit — check all emulator detection markers."""
+    from device_audit import run_audit
+    conf = parse_conf()
+    adb_port = int(conf.get(f"bst.instance.{name}.adb_port", "0"))
+    if not adb_port:
+        raise HTTPException(404, f"Instance '{name}' not found")
+    try:
+        return await run_audit(adb_port)
+    except ConnectionError as e:
+        raise HTTPException(400, str(e))
     except RuntimeError as e:
         raise HTTPException(400, str(e))
 
