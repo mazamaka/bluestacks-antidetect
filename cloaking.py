@@ -104,20 +104,20 @@ async def apply_cloaking(adb_port: int, model: str, brand: str = "") -> dict:
 
     results = []
 
-    # 1. Hide BlueStacks packages
-    r = await _hide_bs_packages(adb_port)
+    # 1. Fix security props via resetprop (needs Magisk root)
+    r = await _fix_security_props(adb_port)
     results.append(r)
 
     # 2. Set chipname/platform props
     r = await _set_device_props(adb_port, model)
     results.append(r)
 
-    # 3. Set WiFi MAC
-    r = await _set_wifi_mac(adb_port, brand)
+    # 3. Fix carrier if empty
+    r = await _fix_carrier(adb_port)
     results.append(r)
 
-    # 4. Fix carrier if empty
-    r = await _fix_carrier(adb_port)
+    # 4. Set WiFi MAC
+    r = await _set_wifi_mac(adb_port, brand)
     results.append(r)
 
     # Count
@@ -149,6 +149,33 @@ async def revert_cloaking(adb_port: int) -> dict:
 
     logger.info("Cloaking reverted on port {}", adb_port)
     return {"fixes": results}
+
+
+async def _fix_security_props(port: int) -> dict:
+    """Fix ro.secure, ro.debuggable, ro.build.type via Magisk resetprop."""
+    fixed = []
+    security_props = {
+        "ro.secure": "1",
+        "ro.debuggable": "0",
+        "ro.build.type": "user",
+    }
+    for prop, value in security_props.items():
+        try:
+            await adb_shell(port, f"su -c 'resetprop {prop} {value}'")
+            actual = (await adb_shell(port, f"getprop {prop}")).strip()
+            if actual == value:
+                fixed.append(prop)
+        except RuntimeError:
+            pass
+
+    if len(fixed) == len(security_props):
+        return {"name": "Security props", "status": "ok",
+                "detail": f"Fixed: {', '.join(fixed)}"}
+    elif fixed:
+        return {"name": "Security props", "status": "warn",
+                "detail": f"Partial: {', '.join(fixed)} (need Magisk root for all)"}
+    return {"name": "Security props", "status": "fail",
+            "detail": "resetprop not available (need Magisk root)"}
 
 
 async def _hide_bs_packages(port: int) -> dict:
@@ -215,11 +242,16 @@ async def _set_device_props(port: int, model: str) -> dict:
 
     set_props = []
     for prop, value in props.items():
+        # Try resetprop (Magisk, works for ro.* props)
         try:
-            await adb_shell(port, f"setprop {prop} {value}")
+            await adb_shell(port, f"su -c 'resetprop {prop} {value}'")
         except RuntimeError:
-            pass  # setprop returns error for ro.* but value may still be set
-        # Verify it actually took
+            # Fallback to setprop
+            try:
+                await adb_shell(port, f"setprop {prop} {value}")
+            except RuntimeError:
+                pass
+        # Verify
         try:
             actual = (await adb_shell(port, f"getprop {prop}")).strip()
             if actual == value:

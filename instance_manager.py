@@ -18,6 +18,9 @@ from adb_manager import connect, apply_build_props, set_android_id
 # Clean factory data image (no accounts, no apps)
 CLEAN_DATA_IMG = BS_APP / "Contents/img/data-org.qcow2"
 
+# Template instance name (with APKs, root, cloaking pre-installed)
+TEMPLATE_INSTANCE = "Tiramisu64_1"
+
 
 class InstanceManager:
     """Manages BlueStacks instances: create, configure, start, stop."""
@@ -122,13 +125,27 @@ class InstanceManager:
         target_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Created instance dir: {}", target_dir)
 
-        # 2. Create disk from clean factory image (no accounts/data)
+        # 2. Create disk — use template if available (has APKs, root, cloaking)
         target_disk = target_dir / "data.qcow2"
         if target_disk.exists():
             target_disk.unlink()
 
-        if CLEAN_DATA_IMG.exists() and BS_QEMU_IMG.exists():
-            logger.info("Creating clean disk from factory image...")
+        template_disk = BS_ENGINE_DIR / TEMPLATE_INSTANCE / "data.qcow2"
+        if template_disk.exists() and BS_QEMU_IMG.exists():
+            # Clone from template using qcow2 backing file (instant, copy-on-write)
+            logger.info("Creating disk from template (with APKs + root + cloaking)...")
+            subprocess.run(
+                [
+                    str(BS_QEMU_IMG), "create", "-f", "qcow2",
+                    "-b", str(template_disk), "-F", "qcow2",
+                    str(target_disk),
+                ],
+                check=True, capture_output=True,
+            )
+            logger.info("Disk created from template (backing: {})", TEMPLATE_INSTANCE)
+        elif CLEAN_DATA_IMG.exists() and BS_QEMU_IMG.exists():
+            # Fallback: clean factory image (no APKs)
+            logger.warning("Template not found, using factory image (no APKs/root)")
             subprocess.run(
                 [
                     str(BS_QEMU_IMG), "create", "-f", "qcow2",
@@ -137,10 +154,9 @@ class InstanceManager:
                 ],
                 check=True, capture_output=True,
             )
-            logger.info("Clean disk created (backing: data-org.qcow2)")
         else:
             source_disk = source_dir / "data.qcow2"
-            logger.warning("Factory image not found, copying master disk (includes accounts!)")
+            logger.warning("No template or factory image, copying master disk")
             shutil.copy2(source_disk, target_disk)
 
         # 3. Clone config from source
@@ -173,7 +189,7 @@ class InstanceManager:
         # Clean slate: no google accounts from master, fresh boot
         set_instance_value(self.conf, name, "google_account_logins", "")
         set_instance_value(self.conf, name, "first_boot", "1")
-        set_instance_value(self.conf, name, "enable_root_access", "0")
+        set_instance_value(self.conf, name, "enable_root_access", "1")  # Root enabled (Magisk)
         set_instance_value(self.conf, name, "gl_win_height", "900")
 
         # 5. Save config
