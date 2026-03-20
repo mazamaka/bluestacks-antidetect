@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+profiles.json
+*.log
+.DS_Store

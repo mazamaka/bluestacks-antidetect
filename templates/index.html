@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueStacks Antidetect</title>
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --bg2: #1a1a24;
+            --bg3: #252535;
+            --border: #2e2e42;
+            --text: #e0e0e8;
+            --text2: #8888a0;
+            --accent: #6c5ce7;
+            --accent2: #a29bfe;
+            --green: #00b894;
+            --red: #d63031;
+            --orange: #fdcb6e;
+            --blue: #0984e3;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--blue));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header h1 span {
+            color: var(--text2);
+            font-weight: 400;
+            font-size: 13px;
+            margin-left: 8px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover { background: #5a4bd1; }
+
+        .btn-secondary {
+            background: var(--bg3);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--border); }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid rgba(214, 48, 49, 0.3);
+        }
+        .btn-danger:hover { background: rgba(214, 48, 49, 0.1); }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 6px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { color: var(--text); background: var(--border); }
+
+        /* Main content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            flex: 1;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .stat-card .value.green { color: var(--green); }
+        .stat-card .value.accent { color: var(--accent2); }
+        .stat-card .value.orange { color: var(--orange); }
+
+        /* Instance grid */
+        .instances-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .instance-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .instance-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(108, 92, 231, 0.1);
+        }
+
+        .instance-card.master {
+            border-color: var(--blue);
+        }
+
+        .card-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .device-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .device-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .device-model {
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.master {
+            background: rgba(9, 132, 227, 0.15);
+            color: var(--blue);
+        }
+
+        .status-badge.clone {
+            background: rgba(108, 92, 231, 0.15);
+            color: var(--accent2);
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .info-item .label {
+            font-size: 10px;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-item .value {
+            font-size: 13px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .info-item .value.proxy-active {
+            color: var(--green);
+        }
+
+        .info-item .value.no-proxy {
+            color: var(--text2);
+        }
+
+        .card-footer {
+            padding: 10px 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 480px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text2);
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+            min-width: 280px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .toast.success { border-left: 3px solid var(--green); }
+        .toast.error { border-left: 3px solid var(--red); }
+        .toast.info { border-left: 3px solid var(--blue); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text2);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+        /* Proxy modal textarea */
+        .proxy-textarea {
+            min-height: 120px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        /* Proxy check result */
+        .proxy-result {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .proxy-result.valid {
+            display: block;
+            background: rgba(0, 184, 148, 0.08);
+            border: 1px solid rgba(0, 184, 148, 0.3);
+        }
+
+        .proxy-result.invalid {
+            display: block;
+            background: rgba(214, 48, 49, 0.08);
+            border: 1px solid rgba(214, 48, 49, 0.3);
+        }
+
+        .proxy-result.checking {
+            display: block;
+            background: var(--bg);
+            border: 1px solid var(--border);
+        }
+
+        .proxy-result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 16px;
+            margin-top: 8px;
+        }
+
+        .proxy-result-grid .pr-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .proxy-result-grid .pr-label {
+            color: var(--text2);
+        }
+
+        .proxy-result-grid .pr-value {
+            font-family: 'SF Mono', monospace;
+            font-weight: 500;
+        }
+
+        .proxy-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .proxy-input-row input {
+            flex: 1;
+        }
+
+        .proxy-input-row .btn {
+            flex-shrink: 0;
+        }
+
+        .proxy-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .proxy-status-dot.green { background: var(--green); }
+        .proxy-status-dot.red { background: var(--red); }
+        .proxy-status-dot.yellow { background: var(--orange); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <div class="logo">BS</div>
+        <h1>Antidetect Manager <span>BlueStacks Air</span></h1>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="refreshInstances()">Refresh</button>
+        <button class="btn btn-secondary" onclick="openBatchProxyModal()">Batch Proxy</button>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ New Instance</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="label">Instances</div>
+            <div class="value accent" id="stat-total">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">With Proxy</div>
+            <div class="value green" id="stat-proxy">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">ADB Port Range</div>
+            <div class="value" id="stat-ports">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Master</div>
+            <div class="value orange" id="stat-master">-</div>
+        </div>
+    </div>
+
+    <div id="instances-container" class="instances-grid">
+        <div class="empty-state">
+            <div class="icon">&#128241;</div>
+            <h3>Loading...</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="create-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Create Instance</h2>
+            <button class="btn-icon" onclick="closeModal('create-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Instance Name (prefix)</label>
+                <input type="text" id="create-name" placeholder="Profile" value="Profile">
+            </div>
+            <div class="form-group">
+                <label>Count</label>
+                <input type="number" id="create-count" value="1" min="1" max="10">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>CPUs</label>
+                    <input type="number" id="create-cpus" value="4" min="1" max="8">
+                </div>
+                <div class="form-group">
+                    <label>RAM (MB)</label>
+                    <input type="number" id="create-ram" value="4096" min="1024" max="16384" step="512">
+                </div>
+            </div>
+            <div style="margin-top:12px; padding:12px; background:var(--bg); border-radius:8px;">
+                <div style="font-size:12px; color:var(--text2); margin-bottom:8px;">Preview fingerprint:</div>
+                <div id="fp-preview" style="font-size:12px; font-family:monospace; color:var(--text2);">
+                    Click "Generate" to preview
+                </div>
+                <button class="btn btn-sm btn-secondary" style="margin-top:8px;" onclick="previewFingerprint()">Generate Preview</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('create-modal')">Cancel</button>
+            <button class="btn btn-primary" id="create-btn" onclick="createInstance()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Proxy Modal -->
+<div class="modal-overlay" id="proxy-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Set Proxy</h2>
+            <button class="btn-icon" onclick="closeModal('proxy-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Instance: <strong id="proxy-instance-name"></strong></label>
+            </div>
+            <div class="form-group">
+                <label>SOCKS5 Proxy</label>
+                <div class="proxy-input-row">
+                    <input type="text" id="proxy-value" placeholder="user:pass@host:port  or  host:port:user:pass">
+                    <button class="btn btn-secondary" id="proxy-test-btn" onclick="testProxy()">Test</button>
+                </div>
+                <div style="margin-top:6px; font-size:11px; color:var(--text2);">
+                    Formats: user:pass@host:port | socks5://user:pass@host:port | host:port:user:pass
+                </div>
+            </div>
+            <div class="proxy-result" id="proxy-result">
+                <div id="proxy-result-content"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('proxy-modal')">Cancel</button>
+            <button class="btn btn-primary" id="proxy-apply-btn" onclick="setProxy()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Proxy Modal -->
+<div class="modal-overlay" id="batch-proxy-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Batch Proxy Assignment</h2>
+            <button class="btn-icon" onclick="closeModal('batch-proxy-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>One proxy per line. Auto-assigns to clone instances in order.<br>
+                <span style="font-size:11px;color:var(--text2)">Or use name=proxy to assign manually. Formats: user:pass@host:port | host:port:user:pass</span></label>
+                <textarea class="proxy-textarea" id="batch-proxy-text" placeholder="user:pass@host1:1080
+host2:port:user:pass
+user:pass@host3:1080"></textarea>
+            </div>
+            <div id="batch-proxy-preview" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('batch-proxy-modal')">Cancel</button>
+            <button class="btn btn-primary" id="batch-proxy-btn" onclick="batchProxy()">Apply All</button>
+        </div>
+    </div>
+</div>
+
+<!-- Info Modal -->
+<div class="modal-overlay" id="info-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Instance Details</h2>
+            <button class="btn-icon" onclick="closeModal('info-modal')">&times;</button>
+        </div>
+        <div class="modal-body" id="info-modal-body">
+            <div class="loading"></div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const API = '';
+
+function toast(msg, type = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+async function api(path, opts = {}) {
+    const res = await fetch(API + path, {
+        headers: {'Content-Type': 'application/json'},
+        ...opts,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error');
+    return data;
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openCreateModal() { openModal('create-modal'); }
+function openBatchProxyModal() { openModal('batch-proxy-modal'); }
+
+async function refreshInstances() {
+    try {
+        const data = await api('/api/instances');
+        renderInstances(data.instances);
+    } catch(e) {
+        toast('Failed to load: ' + e.message, 'error');
+    }
+}
+
+function renderInstances(instances) {
+    const container = document.getElementById('instances-container');
+
+    // Stats
+    document.getElementById('stat-total').textContent = instances.length;
+    document.getElementById('stat-proxy').textContent = instances.filter(i => i.proxy).length;
+    const ports = instances.map(i => i.adb_port).filter(Boolean);
+    document.getElementById('stat-ports').textContent = ports.length ? `${Math.min(...ports)}-${Math.max(...ports)}` : '-';
+    document.getElementById('stat-master').textContent = instances.find(i => i.name === 'Tiramisu64')?.display_name || '-';
+
+    if (instances.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="icon">&#128241;</div><h3>No instances</h3><p>Create your first instance</p></div>`;
+        return;
+    }
+
+    container.innerHTML = instances.map(inst => {
+        const isMaster = inst.name === 'Tiramisu64';
+        const hasProxy = inst.proxy && inst.proxy.length > 0;
+        const brandIcon = getBrandIcon(inst.brand);
+
+        return `
+        <div class="instance-card ${isMaster ? 'master' : ''}">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="device-icon">${brandIcon}</div>
+                    <div>
+                        <div class="device-name">${inst.display_name || inst.name}</div>
+                        <div class="device-model">${inst.brand ? inst.brand + ' ' : ''}${inst.model || inst.name}</div>
+                    </div>
+                </div>
+                <span class="status-badge ${isMaster ? 'master' : 'clone'}">${isMaster ? 'Master' : 'Clone'}</span>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">ADB Port</span>
+                        <span class="value">${inst.adb_port}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Resolution</span>
+                        <span class="value">${inst.resolution}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Android ID</span>
+                        <span class="value">${inst.android_id ? inst.android_id.substring(0, 12) + '...' : '-'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Proxy</span>
+                        <span class="value ${hasProxy ? 'proxy-active' : 'no-proxy'}">
+                            ${hasProxy ? (inst.proxy_ip ? inst.proxy_ip + ' (' + (inst.proxy_country || '') + ')' : shortenProxy(inst.proxy)) : 'None'}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">CPU / RAM</span>
+                        <span class="value">${inst.cpus} cores / ${inst.ram}MB</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">DPI</span>
+                        <span class="value">${inst.dpi}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-sm btn-primary" onclick="startInstance('${inst.name}')" id="start-${inst.name}" title="Start">&#9654;</button>
+                <button class="btn btn-sm btn-secondary" onclick="stopInstance('${inst.name}')" title="Stop">&#9632;</button>
+                <button class="btn btn-sm btn-secondary" onclick="restartInstance('${inst.name}')" title="Restart">&#8634;</button>
+                <button class="btn btn-sm btn-secondary" onclick="showInfo('${inst.name}')" title="Info">&#9432;</button>
+                <button class="btn btn-sm btn-secondary" onclick="openProxyModal('${inst.name}')" title="Set proxy">&#127760;</button>
+                ${hasProxy ? `<button class="btn btn-sm btn-secondary" onclick="setupSocksDroid('${inst.name}')" title="Install & configure SocksDroid VPN">SD</button>` : ''}
+                ${hasProxy ? `<button class="btn btn-sm btn-secondary" onclick="reapplyProxy('${inst.name}')" title="Re-apply proxy via ADB">&#8635;</button>` : ''}
+                ${hasProxy ? `<button class="btn btn-sm btn-secondary" onclick="checkIp('${inst.name}')" title="Check external IP">IP</button>` : ''}
+                ${!isMaster ? `<button class="btn btn-sm btn-danger" onclick="deleteInstance('${inst.name}')" title="Delete instance">&#10005;</button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function getBrandIcon(brand) {
+    const icons = {
+        'Samsung': '&#127279;',
+        'Google': '&#127312;',
+        'Xiaomi': '&#127485;',
+        'OnePlus': '&#127358;',
+    };
+    return icons[brand] || '&#128241;';
+}
+
+function shortenProxy(proxy) {
+    if (!proxy) return '';
+    try {
+        const match = proxy.match(/@([^:]+):(\d+)/);
+        if (match) return match[1] + ':' + match[2];
+        const parts = proxy.split(':');
+        if (parts.length >= 2) return parts[0] + ':' + parts[1];
+    } catch(e) {}
+    return proxy.substring(0, 20);
+}
+
+async function createInstance() {
+    const name = document.getElementById('create-name').value.trim();
+    const count = parseInt(document.getElementById('create-count').value);
+    const cpus = parseInt(document.getElementById('create-cpus').value);
+    const ram = parseInt(document.getElementById('create-ram').value);
+
+    if (!name) { toast('Enter instance name', 'error'); return; }
+
+    const btn = document.getElementById('create-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span> Creating...';
+
+    try {
+        const data = await api('/api/instances', {
+            method: 'POST',
+            body: JSON.stringify({name, count, cpus, ram}),
+        });
+        closeModal('create-modal');
+        const created = data.results.filter(r => r.status === 'created').length;
+        const errors = data.results.filter(r => r.status === 'error');
+        toast(`Created ${created} instance(s)`, 'success');
+        if (errors.length) {
+            errors.forEach(e => toast(`${e.name}: ${e.error}`, 'error'));
+        }
+        refreshInstances();
+    } catch(e) {
+        toast('Create failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create';
+    }
+}
+
+async function deleteInstance(name) {
+    if (!confirm(`Delete instance "${name}"? All data will be removed.`)) return;
+    try {
+        await api(`/api/instances/${name}`, {method: 'DELETE'});
+        toast(`${name} deleted`, 'success');
+        refreshInstances();
+    } catch(e) {
+        toast('Delete failed: ' + e.message, 'error');
+    }
+}
+
+async function stopInstance(name) {
+    try {
+        const data = await api(`/api/instances/${name}/stop`, {method: 'POST'});
+        toast(data.message || 'Stopping...', 'success');
+    } catch(e) {
+        toast('Stop failed: ' + e.message, 'error');
+    }
+}
+
+async function restartInstance(name) {
+    toast(`Restarting ${name}...`, 'info');
+    try {
+        await api(`/api/instances/${name}/stop`, {method: 'POST'});
+    } catch(e) {}
+    setTimeout(async () => {
+        try {
+            const data = await api(`/api/instances/${name}/start`, {method: 'POST'});
+            toast(data.message, 'success');
+        } catch(e) {
+            toast('Restart failed: ' + e.message, 'error');
+        }
+    }, 3000);
+}
+
+async function setupSocksDroid(name) {
+    toast(`SocksDroid: checking ${name}...`, 'info');
+    try {
+        const data = await api(`/api/instances/${name}/setup-socksdroid`, {method: 'POST'});
+        const type = data.status === 'ok' ? 'success' : data.status === 'warning' ? 'error' : 'info';
+        toast(data.message, type);
+        if (data.ip) refreshInstances();
+    } catch(e) {
+        toast('SD failed: ' + e.message, 'error');
+    }
+}
+
+async function reapplyProxy(name) {
+    toast(`Re-applying proxy on ${name}...`, 'info');
+    try {
+        const data = await api(`/api/instances/${name}/reapply-proxy`, {method: 'POST'});
+        if (data.status === 'ok') {
+            toast(data.message, 'success');
+        } else {
+            toast(data.message, 'error');
+        }
+    } catch(e) {
+        toast('Re-apply failed: ' + e.message, 'error');
+    }
+}
+
+async function startInstance(name) {
+    const btn = document.getElementById('start-' + name);
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span> Checking...';
+    try {
+        const data = await api(`/api/instances/${name}/start`, {method: 'POST'});
+        toast(data.message, 'success');
+        btn.textContent = 'Starting...';
+        setTimeout(() => {
+            btn.textContent = 'Start';
+            btn.disabled = false;
+            refreshInstances();
+        }, 8000);
+    } catch(e) {
+        toast('Start failed: ' + e.message, 'error');
+        btn.textContent = 'Start';
+        btn.disabled = false;
+    }
+}
+
+function openProxyModal(name) {
+    document.getElementById('proxy-instance-name').textContent = name;
+    document.getElementById('proxy-value').value = '';
+    document.getElementById('proxy-value').dataset.instance = name;
+    const resultEl = document.getElementById('proxy-result');
+    resultEl.className = 'proxy-result';
+    resultEl.style.display = 'none';
+    document.getElementById('proxy-apply-btn').disabled = false;
+    openModal('proxy-modal');
+}
+
+async function testProxy() {
+    const proxy = document.getElementById('proxy-value').value.trim();
+    if (!proxy) { toast('Enter proxy first', 'error'); return; }
+
+    const resultEl = document.getElementById('proxy-result');
+    const contentEl = document.getElementById('proxy-result-content');
+    const btn = document.getElementById('proxy-test-btn');
+
+    // Show checking state
+    resultEl.className = 'proxy-result checking';
+    resultEl.style.display = 'block';
+    contentEl.innerHTML = '<span class="loading"></span> Checking proxy...';
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    try {
+        const data = await api('/api/proxy/check', {
+            method: 'POST',
+            body: JSON.stringify({proxy}),
+        });
+
+        if (data.valid) {
+            resultEl.className = 'proxy-result valid';
+            contentEl.innerHTML = `
+                <div><span class="proxy-status-dot green"></span><strong>Proxy is working</strong></div>
+                <div class="proxy-result-grid">
+                    <div class="pr-item"><span class="pr-label">IP</span><span class="pr-value">${data.ip}</span></div>
+                    <div class="pr-item"><span class="pr-label">Country</span><span class="pr-value">${data.country || '-'}</span></div>
+                    <div class="pr-item"><span class="pr-label">City</span><span class="pr-value">${data.city || '-'}</span></div>
+                    <div class="pr-item"><span class="pr-label">Latency</span><span class="pr-value">${data.latency_ms}ms</span></div>
+                    ${data.org ? `<div class="pr-item" style="grid-column:1/3"><span class="pr-label">ISP</span><span class="pr-value">${data.org}</span></div>` : ''}
+                </div>`;
+        } else {
+            resultEl.className = 'proxy-result invalid';
+            contentEl.innerHTML = `
+                <div><span class="proxy-status-dot red"></span><strong>Proxy failed</strong></div>
+                <div style="margin-top:6px; font-size:12px; color:var(--text2);">${data.error}</div>`;
+        }
+    } catch(e) {
+        resultEl.className = 'proxy-result invalid';
+        contentEl.innerHTML = `
+            <div><span class="proxy-status-dot red"></span><strong>Check error</strong></div>
+            <div style="margin-top:6px; font-size:12px; color:var(--text2);">${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Test';
+    }
+}
+
+async function setProxy() {
+    const name = document.getElementById('proxy-value').dataset.instance;
+    const proxy = document.getElementById('proxy-value').value.trim();
+    if (!proxy) { toast('Enter proxy', 'error'); return; }
+
+    const btn = document.getElementById('proxy-apply-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span>';
+
+    try {
+        // Save proxy to profiles (without requiring ADB)
+        const profiles = await api('/api/instances');
+        await api(`/api/instances/${name}/proxy`, {
+            method: 'POST',
+            body: JSON.stringify({proxy}),
+        });
+        closeModal('proxy-modal');
+        toast(`Proxy set for ${name}`, 'success');
+        refreshInstances();
+    } catch(e) {
+        toast('Proxy failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply';
+    }
+}
+
+async function checkIp(name) {
+    toast(`Checking IP for ${name}...`, 'info');
+    try {
+        const data = await api(`/api/instances/${name}/ip`);
+        toast(`${name}: ${data.ip}`, 'success');
+    } catch(e) {
+        toast('IP check failed: ' + e.message, 'error');
+    }
+}
+
+async function showInfo(name) {
+    document.getElementById('info-modal-body').innerHTML = '<div class="loading"></div> Loading...';
+    openModal('info-modal');
+    try {
+        const data = await api(`/api/instances/${name}/info`);
+        let html = `<div style="margin-bottom:12px;"><strong>${name}</strong> - ${data.status === 'online' ? '<span style="color:var(--green)">Online</span>' : '<span style="color:var(--text2)">Offline</span>'}</div>`;
+        html += `<div style="font-size:12px; color:var(--text2);">ADB Port: ${data.adb_port}</div>`;
+        if (data.info) {
+            html += '<div style="margin-top:12px;">';
+            for (const [k, v] of Object.entries(data.info)) {
+                html += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px;">
+                    <span style="color:var(--text2)">${k}</span>
+                    <span style="font-family:monospace">${v}</span>
+                </div>`;
+            }
+            html += '</div>';
+        }
+        document.getElementById('info-modal-body').innerHTML = html;
+    } catch(e) {
+        document.getElementById('info-modal-body').innerHTML = `<div style="color:var(--red)">${e.message}</div>`;
+    }
+}
+
+async function batchProxy() {
+    const text = document.getElementById('batch-proxy-text').value.trim();
+    if (!text) { toast('Enter proxies', 'error'); return; }
+
+    // Get clone instances (exclude master)
+    let instances;
+    try {
+        const data = await api('/api/instances');
+        instances = data.instances.filter(i => i.name !== 'Tiramisu64');
+    } catch(e) {
+        toast('Failed to load instances', 'error');
+        return;
+    }
+
+    const proxies = {};
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+    // Filter: only lines that look like proxy strings (contain host:port pattern)
+    const proxyLines = lines.filter(line => {
+        // Must contain at least one dot (domain/IP) and digits (port)
+        // Skip lines that look like chat messages, names, dates
+        if (line.includes('=')) return true; // explicit assignment
+        return /[a-zA-Z0-9.-]+[.:]\d{2,5}/.test(line) && !line.startsWith('http://localhost');
+    });
+
+    let proxyIdx = 0;
+    for (const line of proxyLines) {
+        if (line.includes('=')) {
+            const [name, proxy] = line.split('=', 2);
+            if (name && proxy) proxies[name.trim()] = proxy.trim();
+        } else {
+            if (proxyIdx < instances.length) {
+                proxies[instances[proxyIdx].name] = line;
+                proxyIdx++;
+            } else {
+                toast(`No instance for proxy (only ${instances.length} clones)`, 'error');
+            }
+        }
+    }
+
+    if (Object.keys(proxies).length === 0) { toast('No valid proxies', 'error'); return; }
+
+    const btn = document.getElementById('batch-proxy-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span> Applying...';
+
+    try {
+        const data = await api('/api/instances/batch-proxy', {
+            method: 'POST',
+            body: JSON.stringify({proxies}),
+        });
+        closeModal('batch-proxy-modal');
+        const ok = data.results.filter(r => r.status === 'ok').length;
+        const errors = data.results.filter(r => r.status === 'error');
+        toast(`Proxy set for ${ok} instance(s)`, 'success');
+        errors.forEach(e => toast(`${e.instance}: ${e.error}`, 'error'));
+        refreshInstances();
+    } catch(e) {
+        toast('Batch proxy failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply All';
+    }
+}
+
+async function previewFingerprint() {
+    try {
+        const fp = await api('/api/fingerprint');
+        const el = document.getElementById('fp-preview');
+        el.innerHTML = `
+            <div>${fp.device_profile.brand} ${fp.device_profile.model} (${fp.device_profile.name})</div>
+            <div>Android ID: ${fp.android_id}</div>
+            <div>IMEI: ${fp.imei}</div>
+            <div>Screen: ${fp.fb_width}x${fp.fb_height} @${fp.dpi}dpi</div>
+            <div>MAC: ${fp.mac_address}</div>
+        `;
+    } catch(e) {
+        toast('Failed to generate fingerprint', 'error');
+    }
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('active');
+    });
+});
+
+// Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+    }
+});
+
+// Init
+refreshInstances();
+</script>
+
+</body>
+</html>
